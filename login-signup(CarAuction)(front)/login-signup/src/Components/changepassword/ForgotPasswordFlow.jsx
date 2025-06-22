@@ -91,7 +91,7 @@ function ForgotPasswordFlow() {
             </button>
             </div>
 
-            <button onClick={handleChangePasswordWithCode}>Change</button>
+            <button onClick={handleVerifyCode}>Change</button>
         </>
         )}
 

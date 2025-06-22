@@ -10,8 +10,10 @@ import phone_icon from '../Assets/phone.png';
 import profile_icon from '../Assets/profile.png';
 
 const LoginSignup = () => {
-    
   const [showForgotFlow, setShowForgotFlow] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+
+  const [verificationCode, setVerificationCode] = useState('');
 
   const [action, setAction] = useState("Sign Up");
 
@@ -55,6 +57,19 @@ const LoginSignup = () => {
       if (res.ok) {
         alert(data.message || `${action} successful`);
         console.log(data);
+
+        if(action === "Sign Up"){
+          // Send verification code only after signup
+          await fetch('http://localhost:8000/api/auth/send-verification-code', {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email }),
+          });
+          setShowVerificationModal(true);
+        }
+        
       } else {
         alert(data.message || 'An error occurred');
       }
@@ -62,6 +77,28 @@ const LoginSignup = () => {
     } catch (err) {
       console.error(err);
       alert('Something went wrong');
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    try {
+      const res = await fetch('http://localhost:8000/api/auth/verify-verification-code', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, providedCode: verificationCode })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert('Your account has been verified!');
+        setShowVerificationModal(false);
+        setVerificationCode('');
+      } else {
+        alert(data.message || 'Verification failed');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Server error while verifying');
     }
   };
 
@@ -153,15 +190,14 @@ const LoginSignup = () => {
         </Modal>
       )}
 
-
       <div className="submit-container">
         <div
           className={action === "Login" ? "submit gray" : "submit"}
           onClick={() => {
             if (action === "Sign Up") {
-            handleSubmit(); // ✅ Only submit if already in Sign Up mode
+              handleSubmit(); // Only submit if already in Sign Up mode
             } else {
-            setAction("Sign Up"); // ✅ Otherwise, just switch the form
+              setAction("Sign Up"); // Otherwise, just switch the form
             }
           }}>
           Sign Up
@@ -170,14 +206,31 @@ const LoginSignup = () => {
           className={action === "Sign Up" ? "submit gray" : "submit"}
           onClick={() => {
             if (action === "Login") {
-            handleSubmit(); // ✅ Only submit if already in Login mode
+              handleSubmit(); // Only submit if already in Login mode
             } else {
-            setAction("Login"); // ✅ Otherwise, just switch the form
+              setAction("Login"); // Otherwise, just switch the form
             }
-        }}>
+          }}>
           Log In
         </div>
       </div>
+
+      {showVerificationModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>Email Verification</h3>
+            <p>Enter the code sent to <strong>{email}</strong>:</p>
+            <input
+              type="text"
+              placeholder="Enter verification code"
+              value={verificationCode}
+              onChange={(e) => setVerificationCode(e.target.value)}
+            />
+            <button onClick={handleVerifyCode}>Verify</button>
+            <button className="close-btn" onClick={() => setShowVerificationModal(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
